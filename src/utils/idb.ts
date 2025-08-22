@@ -1,11 +1,10 @@
-// src/utils/idb.ts
 import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
 
-const DB_NAME = 'NereoPhone';
+const DB_NAME = 'little-phone';
 const DB_VER = 1;
 const FILES = 'files';
 
-// 描述本库的表结构：只有一个 object store: "files"
+// 本库表结构
 interface LPDB extends DBSchema {
   [FILES]: {
     key: string;
@@ -37,7 +36,6 @@ export async function idbSet(key: string, value: Blob | string | ArrayBuffer) {
 
 export async function idbGet<T = any>(key: string): Promise<T | undefined> {
   const db = await getDb();
-  // idb 已经帮你做了泛型，这里断言成 T 方便上层使用
   const val = (await db.get(FILES, key)) as unknown as T | undefined;
   return val;
 }

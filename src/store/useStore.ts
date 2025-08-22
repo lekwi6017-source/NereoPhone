@@ -5,7 +5,7 @@ import type {
   Message,
   Persona,
   PromptDoc,
-  UserProfile
+  UserProfile,
 } from '@/types/models';
 import { ts } from '@/utils/time';
 import { ensureFirebase, fsGetAll, fsSetAll } from '@/api/firebase';
@@ -19,29 +19,44 @@ export function useStore() {
   useEffect(() => {
     (async () => {
       await ensureFirebase();
-      const [convs, prompts, profiles, moments] = await Promise.all([
+
+      const [convs, prompts, profilesRaw, moments] = await Promise.all([
         fsGetAll<Conversation>('conversations'),
         fsGetAll<PromptDoc>('prompts'),
-        fsGetAll<UserProfile>('userProfiles'),
-        fsGetAll<any>('moments')
+        fsGetAll<any>('userProfiles'), // 旧数据可能含 uid
+        fsGetAll<any>('moments'),
       ]);
 
-      const profile =
-        profiles.find((p) => (p.id ?? (p as any).uid) === state.uid) ?? {
-          id: state.uid,           // 👈 必填，写入 id
-          uid: state.uid,          // 兼容旧数据（如果你的 UserProfile 里没有 uid，这行也没关系）
+      // 规范化旧/新 profile：给出 id 与 uid（互为兜底）
+      const normalize = (p: any): UserProfile => {
+        const id = p?.id ?? p?.uid ?? state.uid;
+        const uid = p?.uid ?? p?.id ?? state.uid;
+        return {
+          id,
+          uid,
+          avatar: p?.avatar ?? '',
+          personas: Array.isArray(p?.personas) ? p.personas : [],
+          activePersonaId: p?.activePersonaId,
+        };
+      };
+
+      const profiles = profilesRaw.map(normalize);
+
+      const profile: UserProfile =
+        profiles.find((p) => p.id === state.uid) ?? {
+          id: state.uid,
+          uid: state.uid,
           avatar: '',
           personas: [],
           activePersonaId: undefined,
         };
-
 
       setState((s) => ({
         ...s,
         profile,
         conversations: convs,
         prompts,
-        moments
+        moments,
       }));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,11 +64,12 @@ export function useStore() {
 
   // 持久化（简化全量）
   async function persistAll() {
+    const profiles = state.profile ? [state.profile] : [];
     await Promise.all([
       fsSetAll('conversations', state.conversations),
       fsSetAll('prompts', state.prompts),
-      fsSetAll('userProfiles', [state.profile!]),
-      fsSetAll('moments', state.moments)
+      fsSetAll('userProfiles', profiles),
+      fsSetAll('moments', state.moments),
     ]);
   }
 
@@ -82,15 +98,14 @@ export function useStore() {
 
   function setPersona(p: Persona) {
     setState((s) => {
-      const profile = {
-        ...(s.profile ?? { id: s.uid, uid: s.uid, avatar: '', personas: [] as Persona[] }),
-      };
-      const i = profile.personas.findIndex((x) => x.id === p.id);
-      if (i >= 0) profile.personas[i] = p;
-      else profile.personas.push(p);
-      return { ...s, profile };
+      if (!s.profile) return s; // 二次保护
+      const cur = s.profile;
+      const idx = cur.personas.findIndex((x) => x.id === p.id);
+      const personas = [...cur.personas];
+      if (idx >= 0) personas[idx] = p;
+      else personas.push(p);
+      return { ...s, profile: { ...cur, personas } }; // 保留 id/uid/avatar
     });
-
   }
 
   const activeConv = useMemo(
@@ -104,6 +119,7 @@ export function useStore() {
     activeConv,
     upsertConversation,
     pushMessage,
-    persistAll
+    persistAll,
+    setPersona,
   };
 }

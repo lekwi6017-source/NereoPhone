@@ -20,7 +20,7 @@ export interface EmojiMsg extends MsgBase { type: 'emoji'; name: string; url: st
 
 export interface VoiceMsg extends MsgBase {
   type: 'voice';
-  url: string;            // 存 IndexedDB URL / 远端 URL
+  url: string;            // IndexedDB URL / 远端 URL
   duration: number;       // 秒
   transcription: string;  // 转文字（浮层展示）
 }
@@ -48,7 +48,7 @@ export type Message =
 
 export interface Conversation {
   id: string;
-  roleId: string;           // 绑定人设
+  roleId: string;              // 绑定人设
   messages: Message[];
   pendingUserBuffer: string[]; // “发送”累积；“接收”一次性提交
   createdAt: number;
@@ -63,9 +63,9 @@ export interface Persona {
 
 export interface UserProfile {
   id: string;
-  //uid?: string;
+  uid: string;           // 和现有代码对齐：很多地方按 uid 使用
   avatar: string;        // 统一头像（IndexedDB 内部 URL）
-  personas: Persona[];
+  personas: Persona[];   // 明确为 Persona[]
   activePersonaId?: string;
 }
 
@@ -83,7 +83,7 @@ export interface Moment {
   content: string;
   images?: string[];
   timestamp: number;
-  likedBy: string[];
+  likedBy: string[];     // 点赞用户 uid
   comments: Array<{
     id: string;
     author: 'user' | 'ai';

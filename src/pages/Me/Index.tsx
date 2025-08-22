@@ -9,7 +9,7 @@ export default function MeIndex() {
 
   function setAvatar(_key: string, url: string) {
     setState(s => {
-      if (!s.profile) return s;                  // ✅ 先收窄
+      if (!s.profile) return s;                  // 先收窄
       const cur = s.profile;
       return { ...s, profile: { ...cur, avatar: url } };
     });
@@ -18,14 +18,14 @@ export default function MeIndex() {
 
   function bindPersona(personaId: string) {
     setState(s => {
-      if (!s.profile) return s;                  // ✅ 先收窄
+      if (!s.profile) return s;                  // 先收窄
       const cur = s.profile;
       return { ...s, profile: { ...cur, activePersonaId: personaId } };
     });
     persistAll();
   }
 
-  // ✅ 组件渲染前也做一次判空，下面就能把 profile 当非空用
+  // 渲染前判空
   if (!state.profile) {
     return (
       <div className="p-3">

@@ -1,41 +1,54 @@
 import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { ts, formatTime } from '@/utils/time';
+import type { Moment } from '@/types/models';
 
 export default function Moments() {
   const { state, setState, persistAll } = useStore();
   const [text, setText] = useState('');
 
   function addMoment() {
-    if (!text.trim()) return;
+    const content = text.trim();
+    if (!content) return;
+
+    // 1) 新建动态（保持原逻辑）
     setState((s) => {
-      const m = {
+      const m: Moment = {
         id: 'm-' + ts(),
-        author: 'user' as const,
+        author: 'user',           // ✅ 字面量，不会被宽化
         authorName: '我',
         avatar: s.profile?.avatar || '',
-        content: text.trim(),
+        content,
         images: [],
         timestamp: ts(),
         likedBy: [],
-        comments: []
+        comments: [],
       };
       return { ...s, moments: [m, ...s.moments] };
     });
+
     setText('');
     persistAll();
-    // AI 随机点赞/评论（Mock）
+
+    // 2) AI 随机点赞/评论（Mock）
     if (Math.random() > 0.5) {
       setTimeout(() => {
         setState((s) => {
+          if (s.moments.length === 0) return s;
+
           const arr = [...s.moments];
-          arr[0].likedBy.push('ai');
-          arr[0].comments.push({
+          // 点赞（保持原逻辑）
+          arr[0].likedBy = [...arr[0].likedBy, 'ai'];
+
+          // ✅ 用带类型的变量，确保 author 是 "ai" 字面量而非 string
+          const aiComment: Moment['comments'][number] = {
             id: 'c-' + ts(),
             author: 'ai',
             content: '好有感觉。',
-            timestamp: ts()
-          });
+            timestamp: ts(),
+          };
+          arr[0].comments = [...arr[0].comments, aiComment];
+
           return { ...s, moments: arr };
         });
         persistAll();
@@ -69,19 +82,22 @@ export default function Moments() {
             <div className="text-sm font-medium">{m.authorName}</div>
             <div className="ml-auto text-[10px] text-gray-400">{formatTime(m.timestamp)}</div>
           </div>
-          <div className="mt-2 text-sm">{m.content}</div>
+
+          <div className="mt-2 text-sm whitespace-pre-wrap">{m.content}</div>
 
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+            {/* 点赞 */}
             <button
               onClick={() => {
                 setState((s) => {
+                  const me = s.uid; // 假设全局里有 uid:string
                   const arr = s.moments.map((x) =>
                     x.id === m.id
                       ? {
                           ...x,
-                          likedBy: x.likedBy.includes(s.uid)
-                            ? x.likedBy.filter((u) => u !== s.uid)
-                            : [...x.likedBy, s.uid]
+                          likedBy: x.likedBy.includes(me)
+                            ? x.likedBy.filter((u) => u !== me)
+                            : [...x.likedBy, me],
                         }
                       : x
                   );
@@ -92,22 +108,26 @@ export default function Moments() {
             >
               👍 {m.likedBy.length}
             </button>
+
             <span>·</span>
+
+            {/* 评论 */}
             <button
               onClick={() => {
                 const content = prompt('评论：')?.trim();
                 if (!content) return;
+
+                // ✅ 用带类型的变量，确保 author 是 "user" 字面量
+                const newComment: Moment['comments'][number] = {
+                  id: 'c-' + ts(),
+                  author: 'user',
+                  content,
+                  timestamp: ts(),
+                };
+
                 setState((s) => {
                   const arr = s.moments.map((x) =>
-                    x.id === m.id
-                      ? {
-                          ...x,
-                          comments: [
-                            ...x.comments,
-                            { id: 'c-' + ts(), author: 'user' as const, content, timestamp: ts() }
-                          ]
-                        }
-                      : x
+                    x.id === m.id ? { ...x, comments: [...x.comments, newComment] } : x
                   );
                   return { ...s, moments: arr };
                 });
@@ -116,13 +136,16 @@ export default function Moments() {
             >
               💬 {m.comments.length}
             </button>
+
             <span>·</span>
+
+            {/* 删除动态 */}
             <button
               onClick={() => {
                 if (!confirm('删除该动态？')) return;
                 setState((s) => ({
                   ...s,
-                  moments: s.moments.filter((x) => x.id !== m.id)
+                  moments: s.moments.filter((x) => x.id !== m.id),
                 }));
                 persistAll();
               }}
