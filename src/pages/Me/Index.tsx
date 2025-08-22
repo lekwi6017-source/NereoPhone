@@ -8,11 +8,18 @@ export default function MeIndex() {
   const [name, setName] = useState('我');
 
   function setAvatar(_key: string, url: string) {
-    setState((s) => {
-      const profile = { ...(s.profile || { uid: s.uid, avatar: '', personas: [] }) };
-      profile.avatar = url;
-      return { ...s, profile };
-    });
+    setState(s => ({
+      ...s,
+      profile: { ...s.profile, avatar: url },   // 只改 avatar
+    }));
+    persistAll();
+  }
+
+  function bindPersona(personaId: string) {
+    setState(s => ({
+      ...s,
+      profile: { ...s.profile, activePersonaId: personaId },  // 只改 activePersonaId
+    }));
     persistAll();
   }
 
@@ -20,7 +27,11 @@ export default function MeIndex() {
     <div className="p-3 space-y-3 pb-16">
       <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden">
-          {state.profile?.avatar ? <img src={state.profile.avatar} /> : <div className="w-full h-full flex items-center justify-center">🙂</div>}
+          {state.profile.avatar ? (
+            <img src={state.profile.avatar} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">🙂</div>
+          )}
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium">{name}</div>
@@ -36,27 +47,23 @@ export default function MeIndex() {
         </div>
 
         <div className="mt-2 space-y-2">
-          {(state.profile?.personas || []).map((p) => (
+          {state.profile.personas.map(p => (
             <div key={p.id} className="border rounded-lg p-2">
               <div className="flex items-center">
                 <div className="font-medium">{p.name}</div>
                 <div className="ml-auto text-xs">
                   <button
                     className="text-brand mr-3"
-                    onClick={() => {
-                      setState((s)=>({
-                        ...s,
-                        profile: s.profile ? { ...s.profile, activePersonaId: p.id } : s.profile
-                      }));
-                      persistAll();
-                    }}
+                    onClick={() => bindPersona(p.id)}
                   >
                     绑定到聊天
                   </button>
                   <Link to={`/me/persona/${p.id}`} className="text-brand">编辑</Link>
                 </div>
               </div>
-              <div className="text-xs text-gray-500 whitespace-pre-wrap mt-1 line-clamp-3">{p.prompt}</div>
+              <div className="text-xs text-gray-500 whitespace-pre-wrap mt-1 line-clamp-3">
+                {p.prompt}
+              </div>
             </div>
           ))}
         </div>
