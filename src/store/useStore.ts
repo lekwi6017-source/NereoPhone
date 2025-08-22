@@ -27,13 +27,14 @@ export function useStore() {
       ]);
 
       const profile =
-        profiles.find((p) => p.uid === state.uid) ??
-        {
-          uid: state.uid,
+        profiles.find((p) => (p.id ?? (p as any).uid) === state.uid) ?? {
+          id: state.uid,           // 👈 必填，写入 id
+          uid: state.uid,          // 兼容旧数据（如果你的 UserProfile 里没有 uid，这行也没关系）
           avatar: '',
           personas: [],
-          activePersonaId: undefined
+          activePersonaId: undefined,
         };
+
 
       setState((s) => ({
         ...s,
@@ -81,12 +82,15 @@ export function useStore() {
 
   function setPersona(p: Persona) {
     setState((s) => {
-      const profile = { ...(s.profile ?? { uid: s.uid, avatar: '', personas: [] }) };
+      const profile = {
+        ...(s.profile ?? { id: s.uid, uid: s.uid, avatar: '', personas: [] as Persona[] }),
+      };
       const i = profile.personas.findIndex((x) => x.id === p.id);
       if (i >= 0) profile.personas[i] = p;
       else profile.personas.push(p);
       return { ...s, profile };
     });
+
   }
 
   const activeConv = useMemo(

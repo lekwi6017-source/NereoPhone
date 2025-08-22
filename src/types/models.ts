@@ -62,7 +62,8 @@ export interface Persona {
 }
 
 export interface UserProfile {
-  uid: string;
+  id: string;
+  //uid?: string;
   avatar: string;        // 统一头像（IndexedDB 内部 URL）
   personas: Persona[];
   activePersonaId?: string;
