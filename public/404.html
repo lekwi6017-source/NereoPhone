@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Redirecting…</title>
+<script>
+
+  // 如果你选择了 BrowserRouter+basename，可以用下面更智能的回退
+  const p = location.pathname.replace(/^\/NereoPhone/, '');
+  location.replace('/NereoPhone/' + (p ? ('#' + p + location.search + location.hash) : ''));
+</script>
