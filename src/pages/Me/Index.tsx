@@ -8,27 +8,40 @@ export default function MeIndex() {
   const [name, setName] = useState('我');
 
   function setAvatar(_key: string, url: string) {
-    setState(s => ({
-      ...s,
-      profile: { ...s.profile, avatar: url },   // 只改 avatar
-    }));
+    setState(s => {
+      if (!s.profile) return s;                  // ✅ 先收窄
+      const cur = s.profile;
+      return { ...s, profile: { ...cur, avatar: url } };
+    });
     persistAll();
   }
 
   function bindPersona(personaId: string) {
-    setState(s => ({
-      ...s,
-      profile: { ...s.profile, activePersonaId: personaId },  // 只改 activePersonaId
-    }));
+    setState(s => {
+      if (!s.profile) return s;                  // ✅ 先收窄
+      const cur = s.profile;
+      return { ...s, profile: { ...cur, activePersonaId: personaId } };
+    });
     persistAll();
   }
+
+  // ✅ 组件渲染前也做一次判空，下面就能把 profile 当非空用
+  if (!state.profile) {
+    return (
+      <div className="p-3">
+        <div className="text-sm text-gray-500">正在加载资料…</div>
+      </div>
+    );
+  }
+
+  const profile = state.profile;
 
   return (
     <div className="p-3 space-y-3 pb-16">
       <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden">
-          {state.profile.avatar ? (
-            <img src={state.profile.avatar} alt="avatar" className="w-full h-full object-cover" />
+          {profile.avatar ? (
+            <img src={profile.avatar} alt="avatar" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">🙂</div>
           )}
@@ -47,7 +60,7 @@ export default function MeIndex() {
         </div>
 
         <div className="mt-2 space-y-2">
-          {state.profile.personas.map(p => (
+          {profile.personas.map(p => (
             <div key={p.id} className="border rounded-lg p-2">
               <div className="flex items-center">
                 <div className="font-medium">{p.name}</div>
